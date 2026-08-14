@@ -35,6 +35,9 @@ TYPES = ["wip", "revert", "release", "feat", "fix", "perf", "refactor",
 FOLD = {"style": "refactor"}  # dropped types folded into their successor
 TYPED_RE = re.compile(r"^(%s|style)(\([^)]*\))?!?: " % "|".join(TYPES))
 EVIDENCE_RE = re.compile(r"^(Tests|Evidence|Verified): .+$", re.M)
+LINK_RES = {"Fixes": re.compile(r"^Fixes: .+$", re.M),
+            "Reverts": re.compile(r"^Reverts: .+$", re.M),
+            "Reviewed-by": re.compile(r"^Reviewed-by: .+$", re.M)}
 EVIDENCE_TYPES = ("feat", "fix", "perf")
 
 
@@ -76,7 +79,8 @@ def scan(repo, since, until=None, ref=None):
         t = classify(subject)
         sm = TYPED_RE.match(subject)
         scope = sm.group(2).strip("()") if sm and sm.group(2) else ""
-        recs.append((sha, week, t, subject, bool(EVIDENCE_RE.search(body)), scope))
+        links = tuple(k for k, rx in LINK_RES.items() if rx.search(body))
+        recs.append((sha, week, t, subject, bool(EVIDENCE_RE.search(body)), scope, links))
     return recs
 
 
@@ -110,14 +114,15 @@ def main():
     weekly = collections.defaultdict(collections.Counter)
     gaps_untyped, gaps_unevidenced = [], []
     scope_counts = collections.Counter()
+    link_counts = collections.Counter()
 
     for repo in args.repos:
         recs = scan(repo, args.since, args.until, args.ref)
         if recs is None:
             continue
-        c = collections.Counter(t for _, _, t, _, _, _ in recs)
-        ev = [sum(1 for _, _, t, _, e, _ in recs if t in EVIDENCE_TYPES and e),
-              sum(1 for _, _, t, _, _, _ in recs if t in EVIDENCE_TYPES)]
+        c = collections.Counter(t for _, _, t, _, _, _, _ in recs)
+        ev = [sum(1 for _, _, t, _, e, _, _ in recs if t in EVIDENCE_TYPES and e),
+              sum(1 for _, _, t, _, _, _, _ in recs if t in EVIDENCE_TYPES)]
         total = len(recs)
         typed = total - c["untyped"]
         rows.append([os.path.basename(os.path.abspath(repo)), total,
@@ -128,7 +133,7 @@ def main():
         grand_ev[0] += ev[0]
         grand_ev[1] += ev[1]
         name = os.path.basename(os.path.abspath(repo))
-        for sha, week, t, subject, e, scope in recs:
+        for sha, week, t, subject, e, scope, links in recs:
             if t != "untyped":
                 weekly[week][t] += 1
             else:
@@ -137,6 +142,8 @@ def main():
                 gaps_unevidenced.append("%s %s %s" % (name, sha, subject))
             if scope:
                 scope_counts[scope] += 1
+            for k in links:
+                link_counts[k] += 1
 
     if not rows:
         return 1
@@ -159,6 +166,10 @@ def main():
         more = len(scope_counts) - 15
         print("scopes (typed commits): %s%s"
               % (top, "  ... +%d more" % more if more > 0 else ""))
+
+    if link_counts:
+        print("trailer graph: " + " · ".join("%s %d" % (k, link_counts[k])
+              for k in ("Fixes", "Reverts", "Reviewed-by") if link_counts[k]))
 
     if args.weekly and weekly:
         print()

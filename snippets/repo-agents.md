@@ -34,6 +34,7 @@ Subject: imperative mood, capitalised after the type, no trailing period,
 `feat` and `fix` require a body. `feat`, `fix`, and `perf` require a `Tests:`
 or `Evidence:` trailer carrying the command actually run and its real output —
 no evidence, not done. Other trailers: `Closes: #N`, `Refs: #N`, `Breaking:`,
-`Security:`.
+`Security:`, `Fixes: <sha>` (the commit that introduced the bug),
+`Reviewed-by:`, and `Reverts: <sha>` (required on `revert` commits).
 
 Do not bypass the hook with `--no-verify`; fix the message instead.

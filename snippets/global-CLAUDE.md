@@ -22,7 +22,8 @@
 - Trailers are **orthogonal facts**, any number: `Tests:` / `Evidence:` /
   `Verified:` (the command actually run and its real output — **required on
   `feat`, `fix`, and `perf`**), `Closes: #N`, `Refs: #N`, `Breaking:`,
-  `Security:`, `Co-Authored-By:`.
+  `Security:`, `Co-Authored-By:`, `Fixes: <sha>` (commit that introduced the
+  bug, when known), `Reviewed-by:`, `Reverts: <sha>` (required on `revert`).
 - History analytics: `~/.claude/scripts/commit-stats.py REPO...` (coverage,
   per-type counts, evidence coverage, chore share; `--weekly` for trends).
 - Never reach for `--no-verify` to get past the hook. Fix the message.

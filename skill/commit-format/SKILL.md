@@ -49,7 +49,9 @@ period, ≤72 display columns preferred (88 hard, CJK counts as 2).
 
 Trailers (any number): `Tests:` / `Evidence:` / `Verified:` — **required on
 feat, fix, and perf**, carrying the command actually run and its real output —
-plus `Closes: #N`, `Refs: #N`, `Breaking:`, `Security:`, `Co-Authored-By:`.
+plus `Closes: #N`, `Refs: #N`, `Breaking:`, `Security:`, `Co-Authored-By:`,
+`Fixes: <sha>` (commit that introduced the bug), `Reviewed-by:`, and
+`Reverts: <sha>` (required on `revert` commits).
 
 ## Operations
 

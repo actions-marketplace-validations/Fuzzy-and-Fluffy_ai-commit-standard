@@ -16,7 +16,7 @@ SPEC = "~/.claude/COMMIT-FORMAT.md"
 # Ordered ladder. Order matters and is the whole point: first match wins.
 LADDER = [
     ("wip", "knowingly incomplete or not yet reviewed; must not be merged"),
-    ("revert", "undoes an earlier commit; name it in the body"),
+    ("revert", "undoes an earlier commit; carry a Reverts: <sha> trailer"),
     ("release", "only ships what already exists (version/build bump, notes)"),
     ("feat", "the user can now do something they could not do before"),
     ("fix", "something the user could already do was broken, now correct"),
@@ -45,7 +45,7 @@ GENERATED_RE = re.compile(r'^(Merge\b|Revert "|fixup!|squash!|amend!)')
 TRAILER_RE = re.compile(r"^[A-Z][A-Za-z-]*: .+$")
 EVIDENCE_RE = re.compile(r"^(Tests|Evidence|Verified): .+$")
 KNOWN_TRAILERS = ("Tests", "Evidence", "Verified", "Closes", "Refs", "Breaking",
-                  "Security", "Co-Authored-By")
+                  "Security", "Co-Authored-By", "Fixes", "Reverts", "Reviewed-by")
 # A known key with nothing after the colon does not match TRAILER_RE, so without
 # this it would silently pass as body prose.
 EMPTY_TRAILER_RE = re.compile(r"^(%s):\s*$" % "|".join(KNOWN_TRAILERS))
@@ -241,6 +241,12 @@ def main():
             "    Tests: uv run pytest -q -> 96 passed\n"
             "    Evidence: ran against the live site -> 41 requests, was 78"
             % (ctype, extra)
+        )
+
+    if ctype == "revert" and not any(t.strip().startswith("Reverts: ") for t in trailers):
+        errors.append(
+            "revert needs a 'Reverts: <sha>' trailer naming the commit it undoes,\n"
+            "  so revert chains stay machine-readable for the analytics."
         )
 
     if ctype == "chore":

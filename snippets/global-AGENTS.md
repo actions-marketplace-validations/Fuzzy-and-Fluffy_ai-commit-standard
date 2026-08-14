@@ -19,4 +19,6 @@ ladder once (test/ci/build/refactor usually fits).
 
 `feat` and `fix` require a body; `feat`, `fix`, and `perf` require a `Tests:`
 or `Evidence:` trailer carrying the command actually run and its real output.
-Never use `--no-verify` to get past the hook; fix the message instead.
+`revert` requires `Reverts: <sha>`; on a `fix`, add `Fixes: <sha>` for the
+commit that introduced the bug when known. Never use `--no-verify` to get
+past the hook; fix the message instead.

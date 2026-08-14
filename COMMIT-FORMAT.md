@@ -70,7 +70,7 @@ Notes that keep the ladder deterministic:
 - `revert` outranks `fix`: backing out a bad commit is a failure signal worth
   measuring on its own, even when the revert also fixes the bug. Git-generated
   `Revert "..."` subjects are accepted unchanged; hand-written back-outs use
-  `revert:`.
+  `revert:` and must carry a `Reverts: <sha>` trailer.
 - A commit that changes production code **and** its tests takes the production
   code's type (the artifact-class rungs all say *only*). A commit mixing
   several maintenance classes (tests + CI + deps) lands in `chore` — split it
@@ -140,6 +140,9 @@ Any number, at the end, one per line, `Key: value`.
 | `Verified:` | Alias of `Evidence:` for on-device / on-build verification. |
 | `Closes: #N` | Issue this commit closes. |
 | `Refs: #N` | Issue this commit relates to but does not close. |
+| `Fixes: <sha> ("subject")` | The commit that **introduced** the bug being fixed (Linux-kernel convention). Optional but valuable: it builds the regression genealogy — which commits breed bugs, and how long bugs live. |
+| `Reverts: <sha>` | The commit being undone. **Required on `revert` commits**, so revert chains stay machine-readable. |
+| `Reviewed-by:` | Who or what reviewed this commit (e.g. `Reviewed-by: Codex (fresh context)`). Lets the retro measure review coverage. |
 | `Breaking:` | What breaks, and what the caller must do instead. |
 | `Security:` | What exposure this closes, or knowingly creates. Independent of type. |
 | `Co-Authored-By:` | Standard git trailer. |
@@ -188,9 +191,10 @@ Tests: uv run pytest -q -> 118 passed
 ```
 revert: Back out the eager homepage cache
 
-Reverts 41d2c07 (perf: Stop paying for the same homepage twice): the cache
-served a logged-out page to logged-in runs. Undo first, rediagnose separately.
+The cache served a logged-out page to logged-in runs. Undo first,
+rediagnose separately.
 
+Reverts: 41d2c07
 Refs: #31
 ```
 
