@@ -5,6 +5,7 @@ Runs against a throwaway message file only -- never against a real commit.
 Every case asserts a direction: REJECT means the gate must turn red.
 """
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -16,7 +17,7 @@ CASES = [
     # --- must be REJECTED -------------------------------------------------
     (REJECT, "no type prefix at all", "Add stateful Windows navigation and Finder shortcuts\n"),
     (REJECT, "conventional type we dropped", "style: Reformat the parser\n"),
-    (REJECT, "conventional scope syntax", "feat(keyboard): Add a thing\n\nBody.\n\nTests: x -> ok\n"),
+    (REJECT, "scoped commit in a repo with NO .commit-scopes registry", "feat(keyboard): Add a thing\n\nBody.\n\nTests: x -> ok\n"),
     (REJECT, "unknown type", "hotfix: Patch the thing\n"),
     (REJECT, "lowercase after type", "chore: rename the worker entry point\n"),
     (REJECT, "trailing period", "chore: Rename the worker entry point.\n"),
@@ -81,15 +82,36 @@ CASES = [
 ]
 
 
-def run(msg):
+def run(msg, cwd=None):
     with tempfile.NamedTemporaryFile("w", suffix=".msg", delete=False, encoding="utf-8") as fh:
         fh.write(msg)
         path = fh.name
     try:
-        p = subprocess.run([HOOK, path], capture_output=True, text=True)
+        p = subprocess.run([HOOK, path], capture_output=True, text=True, cwd=cwd)
         return p.returncode, p.stdout + p.stderr
     finally:
         os.unlink(path)
+
+
+SCOPED_CASES = [
+    # Run inside a fixture repo whose .commit-scopes registers: keyboard, dictation
+    (ACCEPT, "registered scope",
+     "feat(keyboard): Add a thing\n\nBody.\n\nTests: x -> ok\n"),
+    (ACCEPT, "unscoped commit in a registry repo",
+     "feat: Add a thing\n\nBody.\n\nTests: x -> ok\n"),
+    (REJECT, "unregistered scope",
+     "feat(audio): Add a thing\n\nBody.\n\nTests: x -> ok\n"),
+    (REJECT, "uppercase scope",
+     "feat(Keyboard): Add a thing\n\nBody.\n\nTests: x -> ok\n"),
+]
+
+
+def scoped_fixture():
+    d = tempfile.mkdtemp(prefix="scope-fixture-")
+    subprocess.run(["git", "init", "-q", d], check=True)
+    with open(os.path.join(d, ".commit-scopes"), "w") as fh:
+        fh.write("# fixture registry\nkeyboard\ndictation  # trailing comment\n")
+    return d
 
 
 def main():
@@ -107,6 +129,19 @@ def main():
         if not good:
             print("      message: %r" % msg[:90])
             print("      output : %s" % out.strip().replace("\n", "\n      "))
+    fixture = scoped_fixture()
+    try:
+        for want, name, msg in SCOPED_CASES:
+            rc, out = run(msg, cwd=fixture)
+            got = REJECT if rc != 0 else ACCEPT
+            good = got == want
+            passed, failed = (passed + 1, failed) if good else (passed, failed + 1)
+            mark = "ok  " if good else "FAIL"
+            print("%s  want %-6s got %-6s  [registry] %s" % (mark, want, got, name))
+            if not good:
+                print("      output : %s" % out.strip().replace("\n", "\n      "))
+    finally:
+        shutil.rmtree(fixture, ignore_errors=True)
     print("-" * 78)
     print("%d passed, %d failed, %d total" % (passed, failed, passed + failed))
     return 1 if failed else 0

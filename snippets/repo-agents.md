@@ -21,8 +21,10 @@ correct) → `perf` (same behaviour, measurably faster — no number, no perf) �
 automation) → `build` (project files, packaging, signing, dependencies) →
 `chore` (residue; re-walk the ladder once before using it).
 
-No scopes — the repository is the scope. Subject: imperative mood, capitalised
-after the type, no trailing period, ≤72 display columns preferred (88 hard).
+Scopes only when the repo root has a `.commit-scopes` registry listing them
+(`feat(dictation): ...`); otherwise none — the repository is the scope.
+Subject: imperative mood, capitalised after the type, no trailing period,
+≤72 display columns preferred (88 hard).
 
 `feat` and `fix` require a body. `feat`, `fix`, and `perf` require a `Tests:`
 or `Evidence:` trailer carrying the command actually run and its real output —

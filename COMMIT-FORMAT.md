@@ -81,15 +81,22 @@ Notes that keep the ladder deterministic:
 - Dependency bumps are `build`: they change what the artifact is made of.
 - Changing a release *script* is `ci`; bumping the version it ships is
   `release`.
-- No scope. The repository is the scope. `feat(keyboard):` spends ten
-  characters to say what the repo name already says.
+- Scopes are **opt-in and registered**, never free-form. A repo that
+  genuinely contains several modules declares them in a checked-in
+  `.commit-scopes` file (one per line, `#` comments); only registered scopes
+  may appear, as `feat(dictation): ...`. Repos without the file reject all
+  scopes — there the repository is the scope. Free-form scopes are banned for
+  the same reason the type list is a ladder: an unmanaged vocabulary decays
+  (one real history grew 49 scope spellings, including `mac` vs `macos` and
+  `relay` vs `relay-client`).
 
 ### Mapping from Conventional Commits (Angular convention)
 
 `feat` `fix` `docs` `refactor` `perf` `test` `build` `ci` `chore` `revert`
 keep their names. `style` is folded into `refactor`. `wip` and `release` are
 added because "do not merge" and "ships existing work" are the two states the
-Angular list cannot express. Legacy history written in the Angular convention
+Angular list cannot express. Scope syntax is kept but validated against the
+repo's `.commit-scopes` registry instead of free-form. Legacy history written in the Angular convention
 therefore stays machine-readable by the same tooling.
 
 ## Subject rules

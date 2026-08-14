@@ -42,9 +42,10 @@ Exactly one type — walk the ladder top-to-bottom, stop at the first yes:
 | `build` | Only how-the-artifact-is-made changed (project files, packaging, signing, deps)? |
 | `chore` | Residue. Rare by design — re-walk the ladder once first. |
 
-No scopes — the repository is the scope. Subject: imperative, capitalised
-after the type, no trailing period, ≤72 display columns preferred (88 hard,
-CJK counts as 2).
+Scopes are opt-in per repo: allowed only when the repo root has a
+`.commit-scopes` registry listing them (`feat(dictation): ...`), rejected
+otherwise. Subject: imperative, capitalised after the type, no trailing
+period, ≤72 display columns preferred (88 hard, CJK counts as 2).
 
 Trailers (any number): `Tests:` / `Evidence:` / `Verified:` — **required on
 feat, fix, and perf**, carrying the command actually run and its real output —
@@ -63,6 +64,8 @@ All commands assume the toolkit repo is cloned somewhere (referred to as
 - **History analytics**: `python3 ~/.claude/scripts/commit-stats.py
   [--since DATE] [--until DATE] [--ref origin/main] [--weekly] [--gaps] REPO...`
   Key metrics: typed coverage, evidence coverage on feat/fix/perf, chore share.
+- **Enable scopes in a multi-module repo**: create `.commit-scopes` at the
+  repo root, one module name per line (`#` comments allowed); commit it.
 - **Per-repo opt-out** (someone else's project, their rules):
   `git config commitformat.enabled false`; re-enable with
   `~/.claude/scripts/install-commit-format.sh enable`.

@@ -3,7 +3,8 @@
   `~/.claude/git-hooks/` enforces it in every repo via global `core.hooksPath`.
 - Shape: `<type>: <Imperative sentence naming the user-visible outcome>`, blank
   line, body explaining what was wrong before and why this approach, blank line,
-  trailers. No scope — the repo is the scope.
+  trailers. Scopes only where the repo has a checked-in `.commit-scopes`
+  registry listing them (`feat(dictation): ...`); otherwise none.
 - Type is a **partition** (exactly one), chosen by walking this ladder and
   stopping at the first yes: `wip` (incomplete/unreviewed, must not merge) →
   `revert` (undoes an earlier commit) → `release` (only ships what exists) →

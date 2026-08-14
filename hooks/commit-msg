@@ -40,7 +40,7 @@ ALIAS_HINTS = {
 BODY_REQUIRED = ("feat", "fix")
 EVIDENCE_REQUIRED = ("feat", "fix", "perf")
 
-SUBJECT_RE = re.compile(r"^(%s): (.+)$" % "|".join(TYPES))
+SUBJECT_RE = re.compile(r"^(%s)(?:\(([a-z0-9][a-z0-9-]*)\))?: (.+)$" % "|".join(TYPES))
 GENERATED_RE = re.compile(r'^(Merge\b|Revert "|fixup!|squash!|amend!)')
 TRAILER_RE = re.compile(r"^[A-Z][A-Za-z-]*: .+$")
 EVIDENCE_RE = re.compile(r"^(Tests|Evidence|Verified): .+$")
@@ -66,6 +66,23 @@ MAX_COLS = 88
 def width(s):
     """Display columns, not bytes: CJK counts as 2."""
     return sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in s)
+
+
+def repo_scopes():
+    """Registered scope vocabulary, or None when the repo has no registry."""
+    top = subprocess.run(["git", "rev-parse", "--show-toplevel"],
+                         capture_output=True, text=True).stdout.strip()
+    if not top:
+        return None
+    path = os.path.join(top, ".commit-scopes")
+    if not os.path.isfile(path):
+        return None
+    out = []
+    for line in open(path, encoding="utf-8"):
+        line = line.split("#", 1)[0].strip()
+        if line:
+            out.append(line)
+    return out
 
 
 def chain_local_hook(argv):
@@ -139,8 +156,8 @@ def main():
             hint = "\n  hint: '%s:' is not a type here; use '%s:'" % (
                 am.group(1), ALIAS_HINTS[am.group(1)])
         elif am and am.group(1) in TYPES and am.group(2):
-            hint = ("\n  hint: no scopes — the repository is the scope; "
-                    "write '%s: ...'" % am.group(1))
+            hint = ("\n  hint: scope must be lowercase [a-z0-9-] and listed in "
+                    "the repo's .commit-scopes registry")
         errors.append(
             "subject must start with a type prefix: <type>: <Sentence>\n"
             "  got: %s%s\n%s" % (subject, hint, ladder_help())
@@ -148,7 +165,22 @@ def main():
         report(errors, warnings)
         return 1
 
-    ctype, text = m.group(1), m.group(2).strip()
+    ctype, scope, text = m.group(1), m.group(2), m.group(3).strip()
+
+    if scope:
+        reg = repo_scopes()
+        if reg is None:
+            errors.append(
+                "scope '(%s)' used, but this repo has no .commit-scopes registry.\n"
+                "  Drop the scope, or create .commit-scopes at the repo root\n"
+                "  (one scope per line, # comments) to opt in." % scope
+            )
+        elif scope not in reg:
+            errors.append(
+                "unregistered scope '%s'. Registered: %s\n"
+                "  Add it to .commit-scopes first if it is a real module."
+                % (scope, ", ".join(reg))
+            )
 
     # --- subject checks ---
     if text[:1].isalpha() and not text[:1].isupper():

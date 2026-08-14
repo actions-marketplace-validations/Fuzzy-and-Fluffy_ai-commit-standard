@@ -74,7 +74,9 @@ def scan(repo, since, until=None, ref=None):
         if subject.startswith("Merge "):
             continue
         t = classify(subject)
-        recs.append((sha, week, t, subject, bool(EVIDENCE_RE.search(body))))
+        sm = TYPED_RE.match(subject)
+        scope = sm.group(2).strip("()") if sm and sm.group(2) else ""
+        recs.append((sha, week, t, subject, bool(EVIDENCE_RE.search(body)), scope))
     return recs
 
 
@@ -107,14 +109,15 @@ def main():
     rows = []
     weekly = collections.defaultdict(collections.Counter)
     gaps_untyped, gaps_unevidenced = [], []
+    scope_counts = collections.Counter()
 
     for repo in args.repos:
         recs = scan(repo, args.since, args.until, args.ref)
         if recs is None:
             continue
-        c = collections.Counter(t for _, _, t, _, _ in recs)
-        ev = [sum(1 for _, _, t, _, e in recs if t in EVIDENCE_TYPES and e),
-              sum(1 for _, _, t, _, _ in recs if t in EVIDENCE_TYPES)]
+        c = collections.Counter(t for _, _, t, _, _, _ in recs)
+        ev = [sum(1 for _, _, t, _, e, _ in recs if t in EVIDENCE_TYPES and e),
+              sum(1 for _, _, t, _, _, _ in recs if t in EVIDENCE_TYPES)]
         total = len(recs)
         typed = total - c["untyped"]
         rows.append([os.path.basename(os.path.abspath(repo)), total,
@@ -125,13 +128,15 @@ def main():
         grand_ev[0] += ev[0]
         grand_ev[1] += ev[1]
         name = os.path.basename(os.path.abspath(repo))
-        for sha, week, t, subject, e in recs:
+        for sha, week, t, subject, e, scope in recs:
             if t != "untyped":
                 weekly[week][t] += 1
             else:
                 gaps_untyped.append("%s %s %s" % (name, sha, subject))
             if t in EVIDENCE_TYPES and not e:
                 gaps_unevidenced.append("%s %s %s" % (name, sha, subject))
+            if scope:
+                scope_counts[scope] += 1
 
     if not rows:
         return 1
@@ -148,6 +153,12 @@ def main():
     if grand_ev[1]:
         print("evidence coverage on feat/fix/perf: %.1f%%"
               % (100 * grand_ev[0] / grand_ev[1]))
+
+    if scope_counts:
+        top = ", ".join("%s %d" % kv for kv in scope_counts.most_common(15))
+        more = len(scope_counts) - 15
+        print("scopes (typed commits): %s%s"
+              % (top, "  ... +%d more" % more if more > 0 else ""))
 
     if args.weekly and weekly:
         print()

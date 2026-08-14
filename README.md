@@ -19,7 +19,8 @@ The type is picked by walking a 12-rung ladder top-to-bottom and stopping at
 the first yes — `wip → revert → release → feat → fix → perf → refactor → docs
 → test → ci → build → chore` — so classification is never a judgement call.
 `feat`, `fix`, and `perf` mechanically require a `Tests:`/`Evidence:` trailer:
-no evidence, not done.
+no evidence, not done. Scopes are opt-in per repo via a checked-in
+`.commit-scopes` registry — validated, never free-form.
 
 ## Install on a machine (local enforcement)
 
