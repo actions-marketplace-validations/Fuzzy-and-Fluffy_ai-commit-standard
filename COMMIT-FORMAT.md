@@ -91,6 +91,13 @@ Notes that keep the ladder deterministic:
   `relay` vs `relay-client`). A scope names a **product module** and must not
   collide with a type name — `release`, `build`, and `ci` live on the type
   axis, and the hook rejects them as scopes.
+- The registry is **agent-managed** — no human step. An agent uses a
+  registered scope, or none for cross-cutting work; it registers a new scope
+  only for a **lasting product module** with no near-synonym already listed,
+  adding the `.commit-scopes` line in the same commit that first uses it.
+  One-off features are not modules — the subject already names them. The
+  weekly retro lists scopes born that window, so vocabulary growth is audited
+  after the fact instead of gated before.
 
 ### Mapping from Conventional Commits (Angular convention)
 

@@ -23,6 +23,11 @@ automation) → `build` (project files, packaging, signing, dependencies) →
 
 Scopes only when the repo root has a `.commit-scopes` registry listing them
 (`feat(dictation): ...`); otherwise none — the repository is the scope.
+Manage the registry yourself: register a NEW scope only for a lasting product
+module with no near-synonym already listed (merge spellings, never fork them),
+adding the `.commit-scopes` line in the same commit that first uses it. One-off
+features are not modules; process words (release/build/ci) are types, never
+scopes.
 Subject: imperative mood, capitalised after the type, no trailing period,
 ≤72 display columns preferred (88 hard).
 

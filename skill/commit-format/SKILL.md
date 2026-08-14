@@ -66,6 +66,10 @@ All commands assume the toolkit repo is cloned somewhere (referred to as
   Key metrics: typed coverage, evidence coverage on feat/fix/perf, chore share.
 - **Enable scopes in a multi-module repo**: create `.commit-scopes` at the
   repo root, one module name per line (`#` comments allowed); commit it.
+- **New module mid-work (agent-managed, no human step)**: before inventing a
+  scope, check the registry for a near-synonym (merge spellings, never fork);
+  if it is a genuinely new lasting module, add its line to `.commit-scopes`
+  in the same commit that first uses it. One-off features get no scope.
 - **Per-repo opt-out** (someone else's project, their rules):
   `git config commitformat.enabled false`; re-enable with
   `~/.claude/scripts/install-commit-format.sh enable`.

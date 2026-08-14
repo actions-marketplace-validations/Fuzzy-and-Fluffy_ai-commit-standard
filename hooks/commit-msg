@@ -186,7 +186,10 @@ def main():
         elif scope not in reg:
             errors.append(
                 "unregistered scope '%s'. Registered: %s\n"
-                "  Add it to .commit-scopes first if it is a real module."
+                "  A new lasting product module? Check that list for a near-synonym\n"
+                "  first (merge spellings, never fork them), then register it in\n"
+                "  .commit-scopes IN THIS SAME COMMIT and retry.\n"
+                "  A one-off feature is not a module: use an existing scope or none."
                 % (scope, ", ".join(reg))
             )
 
