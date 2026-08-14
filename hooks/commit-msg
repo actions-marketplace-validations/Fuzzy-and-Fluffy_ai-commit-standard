@@ -1,0 +1,234 @@
+#!/usr/bin/env python3
+"""commit-msg hook enforcing ~/.claude/COMMIT-FORMAT.md.
+
+Installed globally via core.hooksPath. Chains to a repo's own
+.git/hooks/commit-msg first, so per-repo hooks keep working.
+Opt out of a repo with: git config commitformat.enabled false
+"""
+import os
+import re
+import subprocess
+import sys
+import unicodedata
+
+SPEC = "~/.claude/COMMIT-FORMAT.md"
+
+# Ordered ladder. Order matters and is the whole point: first match wins.
+LADDER = [
+    ("wip", "knowingly incomplete or not yet reviewed; must not be merged"),
+    ("revert", "undoes an earlier commit; name it in the body"),
+    ("release", "only ships what already exists (version/build bump, notes)"),
+    ("feat", "the user can now do something they could not do before"),
+    ("fix", "something the user could already do was broken, now correct"),
+    ("perf", "identical behaviour, measurably faster (no number, no perf)"),
+    ("refactor", "production code changed, behaviour identical (incl. formatting)"),
+    ("docs", "only prose changed: README, specs, comments"),
+    ("test", "only test code or fixtures changed"),
+    ("ci", "only pipeline automation: workflows, hooks, deploy scripts"),
+    ("build", "how the artifact is made: project files, packaging, deps, signing"),
+    ("chore", "residue that fits nothing above; rare by design"),
+]
+TYPES = [t for t, _ in LADDER]
+
+# Familiar prefixes from other conventions, mapped to the type used here.
+ALIAS_HINTS = {
+    "style": "refactor", "cleanup": "refactor", "feature": "feat",
+    "bugfix": "fix", "hotfix": "fix", "doc": "docs", "tests": "test",
+    "deps": "build", "dependency": "build", "dependencies": "build",
+}
+
+BODY_REQUIRED = ("feat", "fix")
+EVIDENCE_REQUIRED = ("feat", "fix", "perf")
+
+SUBJECT_RE = re.compile(r"^(%s): (.+)$" % "|".join(TYPES))
+GENERATED_RE = re.compile(r'^(Merge\b|Revert "|fixup!|squash!|amend!)')
+TRAILER_RE = re.compile(r"^[A-Z][A-Za-z-]*: .+$")
+EVIDENCE_RE = re.compile(r"^(Tests|Evidence|Verified): .+$")
+KNOWN_TRAILERS = ("Tests", "Evidence", "Verified", "Closes", "Refs", "Breaking",
+                  "Security", "Co-Authored-By")
+# A known key with nothing after the colon does not match TRAILER_RE, so without
+# this it would silently pass as body prose.
+EMPTY_TRAILER_RE = re.compile(r"^(%s):\s*$" % "|".join(KNOWN_TRAILERS))
+
+# Closed list of unambiguous non-imperative openers.
+NON_IMPERATIVE = {
+    "added", "adds", "adding", "fixed", "fixes", "fixing", "updated", "updates",
+    "updating", "changed", "changes", "changing", "removed", "removes",
+    "removing", "implemented", "implements", "implementing", "refactored",
+    "refactors", "refactoring", "created", "creates", "creating", "improved",
+    "improves", "improving", "bumped", "bumps", "renamed", "renames",
+}
+
+WARN_COLS = 72
+MAX_COLS = 88
+
+
+def width(s):
+    """Display columns, not bytes: CJK counts as 2."""
+    return sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in s)
+
+
+def chain_local_hook(argv):
+    """Run the repo's own commit-msg hook, if it has one."""
+    git_dir = subprocess.run(
+        ["git", "rev-parse", "--git-common-dir"],
+        capture_output=True, text=True,
+    ).stdout.strip()
+    if not git_dir:
+        return
+    local = os.path.join(git_dir, "hooks", "commit-msg")
+    if os.path.isfile(local) and os.access(local, os.X_OK):
+        rc = subprocess.call([local] + argv)
+        if rc != 0:
+            sys.exit(rc)
+
+
+def enabled():
+    out = subprocess.run(
+        ["git", "config", "--get", "commitformat.enabled"],
+        capture_output=True, text=True,
+    ).stdout.strip().lower()
+    return out not in ("false", "0", "no", "off")
+
+
+def read_message(path):
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        raw = fh.read()
+    lines = []
+    for line in raw.splitlines():
+        if line.startswith("# ------------------------ >8"):
+            break
+        if line.startswith("#"):
+            continue
+        lines.append(line)
+    while lines and not lines[-1].strip():
+        lines.pop()
+    return lines
+
+
+def ladder_help():
+    out = ["  Pick the type by walking this ladder top to bottom; stop at the first yes:"]
+    for i, (t, ask) in enumerate(LADDER, 1):
+        out.append("    %d. %-8s %s" % (i, t + ":", ask))
+    return "\n".join(out)
+
+
+def main():
+    argv = sys.argv[1:]
+    if not argv:
+        return 0
+    chain_local_hook(argv)
+    if not enabled():
+        return 0
+
+    lines = read_message(argv[0])
+    if not lines or not any(l.strip() for l in lines):
+        return 0  # empty message: git aborts on its own
+
+    subject = lines[0].rstrip()
+    if GENERATED_RE.match(subject):
+        return 0
+
+    errors, warnings = [], []
+
+    m = SUBJECT_RE.match(subject)
+    if not m:
+        hint = ""
+        am = re.match(r"^([a-z][a-z0-9-]*)(\([^)]*\))?!?: ", subject)
+        if am and am.group(1) in ALIAS_HINTS:
+            hint = "\n  hint: '%s:' is not a type here; use '%s:'" % (
+                am.group(1), ALIAS_HINTS[am.group(1)])
+        elif am and am.group(1) in TYPES and am.group(2):
+            hint = ("\n  hint: no scopes — the repository is the scope; "
+                    "write '%s: ...'" % am.group(1))
+        errors.append(
+            "subject must start with a type prefix: <type>: <Sentence>\n"
+            "  got: %s%s\n%s" % (subject, hint, ladder_help())
+        )
+        report(errors, warnings)
+        return 1
+
+    ctype, text = m.group(1), m.group(2).strip()
+
+    # --- subject checks ---
+    if text[:1].isalpha() and not text[:1].isupper():
+        errors.append("subject must be capitalised after the type: %r" % text[:24])
+    if text.endswith("."):
+        errors.append("subject must not end with a period")
+    first = re.split(r"[^A-Za-z]", text, 1)[0].lower()
+    if first in NON_IMPERATIVE:
+        errors.append(
+            "subject must be imperative mood: %r is past tense or a gerund.\n"
+            "  Write what the commit makes the software do: 'Add', not 'Added'/'Adds'."
+            % text.split()[0]
+        )
+    cols = width(subject)
+    if cols > MAX_COLS:
+        errors.append("subject is %d display columns, limit is %d" % (cols, MAX_COLS))
+    elif cols > WARN_COLS:
+        warnings.append("subject is %d columns; %d or fewer reads better" % (cols, WARN_COLS))
+
+    # --- blank line after subject ---
+    if len(lines) > 1 and lines[1].strip():
+        errors.append("leave a blank line between the subject and the body")
+
+    rest = lines[2:] if len(lines) > 2 else []
+    for line in rest:
+        em = EMPTY_TRAILER_RE.match(line.strip())
+        if em:
+            errors.append("'%s:' trailer is empty; say what it actually is" % em.group(1))
+    rest = [l for l in rest if not EMPTY_TRAILER_RE.match(l.strip())]
+    trailers = [l for l in rest if TRAILER_RE.match(l.strip())]
+    prose = [l for l in rest if l.strip() and not TRAILER_RE.match(l.strip())]
+
+    # --- body + evidence requirements ---
+    if ctype in BODY_REQUIRED and not prose:
+        errors.append(
+            "%s needs a body explaining what was wrong before and why this\n"
+            "  approach rather than the obvious alternative." % ctype
+        )
+    if ctype in EVIDENCE_REQUIRED and not any(EVIDENCE_RE.match(t.strip()) for t in trailers):
+        extra = ""
+        if ctype == "perf":
+            extra = ("\n  A perf claim without a measurement is a refactor: "
+                     "show the number or reclassify.")
+        errors.append(
+            "%s needs a 'Tests:' or 'Evidence:' trailer with the command actually\n"
+            "  run and its real result. No evidence = not done.%s\n"
+            "    Tests: uv run pytest -q -> 96 passed\n"
+            "    Evidence: ran against the live site -> 41 requests, was 78"
+            % (ctype, extra)
+        )
+
+    if ctype == "chore":
+        warnings.append(
+            "chore is the residue bucket — if this touched tests, CI, build "
+            "config, or was a behaviour-preserving code change, re-walk the "
+            "ladder (test/ci/build/refactor)"
+        )
+
+    report(errors, warnings)
+    return 1 if errors else 0
+
+
+def report(errors, warnings):
+    for w in warnings:
+        sys.stderr.write("commit-msg: warning: %s\n" % w)
+    if not errors:
+        return
+    sys.stderr.write("\ncommit message rejected (%s)\n\n" % SPEC)
+    for e in errors:
+        sys.stderr.write("  - %s\n" % e)
+    sys.stderr.write(
+        "\n  Shape:\n"
+        "    <type>: <Imperative sentence naming the user-visible outcome>\n"
+        "    <blank>\n"
+        "    <why it was wrong before, why this approach>\n"
+        "    <blank>\n"
+        "    Tests: <command> -> <real result>\n"
+        "\n  Bypass with --no-verify (the commit is then unchecked).\n\n"
+    )
+
+
+if __name__ == "__main__":
+    sys.exit(main())

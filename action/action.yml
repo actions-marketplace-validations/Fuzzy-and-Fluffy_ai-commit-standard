@@ -1,0 +1,20 @@
+name: 'commit-format'
+description: 'Validate commit messages against COMMIT-FORMAT.md (type ladder + evidence trailers)'
+inputs:
+  range:
+    description: 'Explicit rev range A..B; default derives from the pull_request or push event'
+    required: false
+    default: ''
+  forbid-wip:
+    description: "Fail when wip:/fixup!/squash! commits are present. Enable on PRs targeting main."
+    required: false
+    default: 'false'
+runs:
+  using: 'composite'
+  steps:
+    - name: Check commit messages
+      shell: bash
+      env:
+        INPUT_RANGE: ${{ inputs.range }}
+        INPUT_FORBID_WIP: ${{ inputs.forbid-wip }}
+      run: python3 "${{ github.action_path }}/check.py"

@@ -1,0 +1,24 @@
+name: checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  hook-suite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Adversarial gate suite (44 cases)
+        run: python3 tests/test_commit_gate.py
+
+  commit-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate commit messages (dogfood)
+        uses: ./action
+        with:
+          forbid-wip: 'true'
