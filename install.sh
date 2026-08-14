@@ -83,4 +83,4 @@ splice "$HOME/.codex/AGENTS.md" "$REPO/snippets/global-AGENTS.md"
 "$CLAUDE/scripts/install-commit-format.sh" install
 
 ok "commit-format toolkit installed from $REPO"
-info "per-repo CI gate: see README.md (uses: <org>/commit-format/action@main)"
+info "per-repo CI gate: see README.md (uses: Fuzzy-and-Fluffy/commit-format/action@main)"

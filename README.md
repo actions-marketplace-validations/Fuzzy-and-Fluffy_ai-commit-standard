@@ -24,7 +24,7 @@ no evidence, not done.
 ## Install on a machine (local enforcement)
 
 ```bash
-git clone <this-repo-url> && cd commit-format && ./install.sh
+git clone https://github.com/Fuzzy-and-Fluffy/commit-format.git && cd commit-format && ./install.sh
 ```
 
 Idempotent; re-run any time. This installs, for every repo on the machine
@@ -52,7 +52,7 @@ action checks every commit server-side on push/PR:
 - uses: actions/checkout@v4
   with:
     fetch-depth: 0
-- uses: <org>/commit-format/action@main
+- uses: Fuzzy-and-Fluffy/commit-format/action@main
   with:
     forbid-wip: 'true'   # PRs targeting main: wip must be squashed first
 ```

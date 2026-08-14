@@ -53,7 +53,7 @@ plus `Closes: #N`, `Refs: #N`, `Breaking:`, `Security:`, `Co-Authored-By:`.
 ## Operations
 
 All commands assume the toolkit repo is cloned somewhere (referred to as
-`<repo>`); on an installed machine the tools also live under `~/.claude`.
+`<repo>`; clone: https://github.com/Fuzzy-and-Fluffy/commit-format); on an installed machine the tools also live under `~/.claude`.
 
 - **Install on this machine** (hook + spec + skill + agent instructions):
   `cd <repo> && ./install.sh` — idempotent, re-run any time.
@@ -73,7 +73,7 @@ All commands assume the toolkit repo is cloned somewhere (referred to as
   - uses: actions/checkout@v4
     with:
       fetch-depth: 0
-  - uses: <org>/commit-format/action@main
+  - uses: Fuzzy-and-Fluffy/commit-format/action@main
     with:
       forbid-wip: 'true'   # on PRs targeting main
   ```
