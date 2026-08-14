@@ -23,6 +23,7 @@ info() { printf '  %s\n' "$*"; }
 
 PAIRS=(
   "hooks/commit-msg|$CLAUDE/git-hooks/commit-msg"
+  "hooks/pre-push|$CLAUDE/git-hooks/pre-push"
   "COMMIT-FORMAT.md|$CLAUDE/COMMIT-FORMAT.md"
   "scripts/commit-stats.py|$CLAUDE/scripts/commit-stats.py"
   "scripts/install-commit-format.sh|$CLAUDE/scripts/install-commit-format.sh"
@@ -74,7 +75,7 @@ mkdir -p "$CLAUDE/git-hooks" "$CLAUDE/scripts" "$CLAUDE/skills/commit-format"
 for pair in "${PAIRS[@]}"; do
   cp "$REPO/${pair%%|*}" "${pair##*|}"
 done
-chmod +x "$CLAUDE/git-hooks/commit-msg" "$CLAUDE/scripts/install-commit-format.sh"
+chmod +x "$CLAUDE/git-hooks/commit-msg" "$CLAUDE/git-hooks/pre-push" "$CLAUDE/scripts/install-commit-format.sh"
 
 splice "$CLAUDE/CLAUDE.md" "$REPO/snippets/global-CLAUDE.md"
 splice "$HOME/.codex/AGENTS.md" "$REPO/snippets/global-AGENTS.md"

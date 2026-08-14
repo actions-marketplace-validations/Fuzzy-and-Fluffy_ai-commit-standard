@@ -78,6 +78,7 @@ pre-format history stays comparable.
 COMMIT-FORMAT.md          the specification (single source of truth)
 install.sh                machine installer (install | check)
 hooks/commit-msg          the commit-msg gate (python3, no dependencies)
+hooks/pre-push            chains repo-local pre-push hooks + optional privacy scan
 scripts/commit-stats.py   history analytics
 scripts/install-commit-format.sh   check / enable / disable tool
 action/                   composite GitHub Action (server-side gate)
