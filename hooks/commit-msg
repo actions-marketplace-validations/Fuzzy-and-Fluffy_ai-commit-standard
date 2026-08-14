@@ -169,7 +169,15 @@ def main():
 
     if scope:
         reg = repo_scopes()
-        if reg is None:
+        if scope in TYPES:
+            errors.append(
+                "scope '%s' collides with a type name. Scopes name product modules\n"
+                "  (keyboard, dictation); process concepts live on the type axis\n"
+                "  (release: ships, build: how the artifact is made, ci: pipeline).\n"
+                "  Rename the module in .commit-scopes (e.g. '%s-tools')."
+                % (scope, scope)
+            )
+        elif reg is None:
             errors.append(
                 "scope '(%s)' used, but this repo has no .commit-scopes registry.\n"
                 "  Drop the scope, or create .commit-scopes at the repo root\n"

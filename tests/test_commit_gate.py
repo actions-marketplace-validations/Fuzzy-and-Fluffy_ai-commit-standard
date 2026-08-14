@@ -103,6 +103,10 @@ SCOPED_CASES = [
      "feat(audio): Add a thing\n\nBody.\n\nTests: x -> ok\n"),
     (REJECT, "uppercase scope",
      "feat(Keyboard): Add a thing\n\nBody.\n\nTests: x -> ok\n"),
+    (REJECT, "scope colliding with a type name, even though registered",
+     "fix(release): Repair the notarization step\n\nBody.\n\nTests: x -> ok\n"),
+    (ACCEPT, "hyphenated registered scope",
+     "feat(asr-bench): Add a thing\n\nBody.\n\nTests: x -> ok\n"),
 ]
 
 
@@ -110,7 +114,7 @@ def scoped_fixture():
     d = tempfile.mkdtemp(prefix="scope-fixture-")
     subprocess.run(["git", "init", "-q", d], check=True)
     with open(os.path.join(d, ".commit-scopes"), "w") as fh:
-        fh.write("# fixture registry\nkeyboard\ndictation  # trailing comment\n")
+        fh.write("# fixture registry\nkeyboard\ndictation  # trailing comment\nrelease\nasr-bench\n")
     return d
 
 

@@ -88,7 +88,9 @@ Notes that keep the ladder deterministic:
   scopes — there the repository is the scope. Free-form scopes are banned for
   the same reason the type list is a ladder: an unmanaged vocabulary decays
   (one real history grew 49 scope spellings, including `mac` vs `macos` and
-  `relay` vs `relay-client`).
+  `relay` vs `relay-client`). A scope names a **product module** and must not
+  collide with a type name — `release`, `build`, and `ci` live on the type
+  axis, and the hook rejects them as scopes.
 
 ### Mapping from Conventional Commits (Angular convention)
 
