@@ -108,6 +108,29 @@ Angular list cannot express. Scope syntax is kept but validated against the
 repo's `.commit-scopes` registry instead of free-form. Legacy history written in the Angular convention
 therefore stays machine-readable by the same tooling.
 
+## Merge commits are not typed
+
+A merge commit's content is the union of its parents — commits that already
+carry their own types. Typing the merge would count the same work twice, and
+a merge that brings in `test` + `perf` + `fix` at once has no single honest
+answer (the exact undecidability this format exists to remove). The analytics
+already agree: `commit-stats.py` scans with `--no-merges`, and git knows what
+is a merge for free (parent count).
+
+Enforcement is by **topology, never by spelling**: the hook accepts a
+`Merge ...` subject only while `MERGE_HEAD` exists (a merge is genuinely in
+progress), and `Revert "..."` only under `REVERT_HEAD`. A subject that merely
+imitates one — `Merge the parsers into one module` — is rejected and asked to
+take a type (2026-08-14: exactly such a subject sailed through the old
+spelling check with no type, no body, no evidence).
+
+Keep git's generated merge message. If the merge deserves narrative, put it in
+the merge commit's body; evidence belongs on the merged commits themselves —
+they are what the analytics count. Known edge: `git commit --amend` on an
+existing merge runs without `MERGE_HEAD`, so amending a merge message needs
+`--no-verify`; amending merge messages is rare enough that the closed backdoor
+is worth this cost.
+
 ## Subject rules
 
 - Imperative mood: `Add`, `Stop`, `Give`, `Reject` — never `Added`, `Adds`,
@@ -219,8 +242,10 @@ pre-format history stays countable.
 
 ## Bypasses
 
-- `Merge ...`, `Revert "..."`, `fixup!`, `squash!`, `amend!` are accepted
-  unchanged — git generates them.
+- `fixup!`, `squash!`, `amend!` are accepted unchanged — autosquash markers.
+  `Merge ...` / `Revert "..."` are accepted only while the matching operation
+  is really in progress (`MERGE_HEAD` / `REVERT_HEAD`) — see "Merge commits
+  are not typed".
 - `git commit --no-verify` skips the hook entirely. It exists; using it means
   the commit is unchecked, so prefer fixing the message.
 - A repo opts out permanently with `git config commitformat.enabled false`.

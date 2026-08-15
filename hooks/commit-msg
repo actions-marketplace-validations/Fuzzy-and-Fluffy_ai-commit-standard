@@ -41,7 +41,21 @@ BODY_REQUIRED = ("feat", "fix")
 EVIDENCE_REQUIRED = ("feat", "fix", "perf")
 
 SUBJECT_RE = re.compile(r"^(%s)(?:\(([a-z0-9][a-z0-9-]*)\))?: (.+)$" % "|".join(TYPES))
-GENERATED_RE = re.compile(r'^(Merge\b|Revert "|fixup!|squash!|amend!)')
+AUTOSQUASH_RE = re.compile(r"^(fixup!|squash!|amend!)")
+MERGEISH_RE = re.compile(r"^[Mm]erge\b")
+REVERTISH_RE = re.compile(r'^Revert "')
+
+
+def _op_in_progress(ref):
+    """True when git says this operation is really happening (MERGE_HEAD etc.).
+
+    Topology, not spelling: a subject that merely LOOKS like a merge must not
+    bypass the gate (2026-08-14: 'Merge the parser into one module' sailed
+    through with no type, no body, no evidence).
+    """
+    probe = subprocess.run(["git", "rev-parse", "-q", "--verify", ref],
+                           capture_output=True, text=True)
+    return probe.returncode == 0
 TRAILER_RE = re.compile(r"^[A-Z][A-Za-z-]*: .+$")
 EVIDENCE_RE = re.compile(r"^(Tests|Evidence|Verified): .+$")
 KNOWN_TRAILERS = ("Tests", "Evidence", "Verified", "Closes", "Refs", "Breaking",
@@ -143,8 +157,23 @@ def main():
         return 0  # empty message: git aborts on its own
 
     subject = lines[0].rstrip()
-    if GENERATED_RE.match(subject):
+    if AUTOSQUASH_RE.match(subject):
         return 0
+    if REVERTISH_RE.match(subject):
+        if _op_in_progress("REVERT_HEAD"):
+            return 0
+        report(["subject imitates a git-generated revert, but no revert is in\n"
+                "  progress. Hand-written back-outs use 'revert: <Sentence>' with a\n"
+                "  'Reverts: <sha>' trailer."], [])
+        return 1
+    if MERGEISH_RE.match(subject):
+        if _op_in_progress("MERGE_HEAD"):
+            return 0  # a real merge keeps git's generated message, untyped
+        report(["subject looks like a merge, but no merge is in progress — merges\n"
+                "  are detected by topology (MERGE_HEAD), never by spelling.\n"
+                "  Ordinary work needs a type even when the sentence contains\n"
+                "  'merge': e.g. 'refactor: Merge the parsers into one module'."], [])
+        return 1
 
     errors, warnings = [], []
 

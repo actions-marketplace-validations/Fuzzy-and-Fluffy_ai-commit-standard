@@ -7,6 +7,7 @@ Every case asserts a direction: REJECT means the gate must turn red.
 import os
 import shutil
 import subprocess
+from pathlib import Path
 import sys
 import tempfile
 
@@ -78,8 +79,13 @@ CASES = [
      "fix: Reject duplicate registry listing IDs\n\nTwo listings could claim the same id.\n\n"
      "Tests: pytest tests/test_registry.py -q -> 31 passed\nCloses: #92\nSecurity: none\n"
      "Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>\n"),
-    (ACCEPT, "git-generated merge", "Merge branch 'codex/window-manager-first'\n"),
-    (ACCEPT, "git-generated revert", 'Revert "chore: Rename the worker entry point"\n'),
+    (REJECT, "merge-imitating subject with NO merge in progress (the 2026-08-14 backdoor)",
+     "Merge the pack-size parser into one module\n"),
+    (REJECT, "git-style merge subject outside a real merge",
+     "Merge branch 'codex/window-manager-first'\n"),
+    (REJECT, "merge: prefix outside a real merge", "merge: wave1/w148\n"),
+    (REJECT, "revert-imitating subject with NO revert in progress",
+     'Revert "chore: Rename the worker entry point"\n'),
     (ACCEPT, "autosquash fixup", "fixup! chore: Rename the worker entry point\n"),
     (ACCEPT, "comments are stripped before checking",
      "chore: Rename the worker entry point\n# Please enter the commit message\n# On branch main\n"),
@@ -116,6 +122,32 @@ SCOPED_CASES = [
 ]
 
 
+def op_fixture(kind):
+    """A repo genuinely mid-merge (MERGE_HEAD) or mid-revert (REVERT_HEAD)."""
+    d = tempfile.mkdtemp(prefix=f"{kind}-fixture-")
+    def g(*args):
+        subprocess.run(["git", "-C", d, *args], check=True, capture_output=True)
+    g("init", "-q")
+    g("config", "user.email", "t@t"); g("config", "user.name", "T")
+    (Path(d) / "a").write_text("base\n"); g("add", "a")
+    g("commit", "-q", "--no-verify", "-m", "chore: Seed")
+    if kind == "merge":
+        g("checkout", "-q", "-b", "side")
+        (Path(d) / "b").write_text("side\n"); g("add", "b")
+        g("commit", "-q", "--no-verify", "-m", "chore: Side work")
+        g("checkout", "-q", "-")
+        (Path(d) / "c").write_text("main\n"); g("add", "c")
+        g("commit", "-q", "--no-verify", "-m", "chore: Main work")
+        g("merge", "--no-ff", "--no-commit", "side")
+    else:
+        sha = subprocess.run(["git", "-C", d, "rev-parse", "HEAD"],
+                             capture_output=True, text=True).stdout.strip()
+        (Path(d) / "a").write_text("more\n"); g("add", "a")
+        g("commit", "-q", "--no-verify", "-m", "chore: More")
+        g("revert", "--no-commit", "HEAD")
+    return d
+
+
 def scoped_fixture():
     d = tempfile.mkdtemp(prefix="scope-fixture-")
     subprocess.run(["git", "init", "-q", d], check=True)
@@ -139,6 +171,20 @@ def main():
         if not good:
             print("      message: %r" % msg[:90])
             print("      output : %s" % out.strip().replace("\n", "\n      "))
+    for kind, msg in (("merge", "Merge branch 'side'\n"),
+                      ("revert", 'Revert "chore: More"\n\nThis reverts commit abc.\n')):
+        d = op_fixture(kind)
+        try:
+            rc, out = run(msg, cwd=d)
+            got = REJECT if rc != 0 else ACCEPT
+            good = got == ACCEPT
+            passed, failed = (passed + 1, failed) if good else (passed, failed + 1)
+            print("%s  want ACCEPT got %-6s  [topology] real %s in progress" % ("ok  " if good else "FAIL", got, kind))
+            if not good:
+                print("      output : %s" % out.strip().replace("\n", "\n      "))
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+
     fixture = scoped_fixture()
     try:
         for want, name, msg in SCOPED_CASES:

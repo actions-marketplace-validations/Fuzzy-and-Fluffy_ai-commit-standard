@@ -26,4 +26,7 @@
   bug, when known), `Reviewed-by:`, `Reverts: <sha>` (required on `revert`).
 - History analytics: `~/.claude/scripts/commit-stats.py REPO...` (coverage,
   per-type counts, evidence coverage, chore share; `--weekly` for trends).
+- Merge commits are not typed: keep git's generated message; the hook accepts
+  it only during a real merge (MERGE_HEAD), so a subject merely spelled like
+  `Merge ...` gets rejected — give ordinary work a type instead.
 - Never reach for `--no-verify` to get past the hook. Fix the message.
