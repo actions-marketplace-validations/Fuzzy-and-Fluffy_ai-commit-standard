@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">AI Commit Standard mark</title>
+  <desc id="desc">A verified check inside a single Git commit node.</desc>
+
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="#54AEFF"/>
+
+  <path d="M92 256h328" fill="none" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="108" fill="#54AEFF" stroke="#FFFFFF" stroke-width="28"/>
+  <path d="m205 257 34 35 70-77" fill="none" stroke="#FFFFFF" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

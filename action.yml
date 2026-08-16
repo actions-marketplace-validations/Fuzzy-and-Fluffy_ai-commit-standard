@@ -1,5 +1,8 @@
 name: 'AI Commit Standard'
 description: 'Validate Git history with deterministic types and real evidence trailers'
+branding:
+  icon: 'git-commit'
+  color: 'blue'
 inputs:
   range:
     description: 'Explicit rev range A..B; default derives from the pull_request or push event'

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 280" role="img" aria-labelledby="title desc">
+  <title id="title">AI Commit Standard GitHub Marketplace preview</title>
+  <desc id="desc">A light-blue GitHub Action badge with a white Git commit symbol beside the project name and description.</desc>
+  <rect width="960" height="280" rx="24" fill="#FFFFFF"/>
+  <rect x="2" y="2" width="956" height="276" rx="22" fill="none" stroke="#D0D7DE" stroke-width="4"/>
+
+  <rect x="48" y="60" width="160" height="160" rx="32" fill="#54AEFF"/>
+  <path d="M76 140h104" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="128" cy="140" r="34" fill="#54AEFF" stroke="#FFFFFF" stroke-width="12"/>
+
+  <text x="252" y="112" fill="#1F2328" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="42" font-weight="650">AI Commit Standard</text>
+  <text x="252" y="158" fill="#57606A" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24">Deterministic commit types and real evidence trailers</text>
+  <text x="252" y="202" fill="#656D76" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="21">Continuous integration · Code quality</text>
+</svg>
